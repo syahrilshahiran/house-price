@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html >
+<!--From https://codepen.io/frytyler/pen/EGdtg-->
+<head>
+  <meta charset="UTF-8">
+  <title>ML API</title>
+
+
+ <script src="https://libs.cartocdn.com/carto-vl/v1.2.4/carto-vl.min.js"></script>
+    <!-- Load Mapbox GL -->
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.52.0/mapbox-gl.js"></script>
+    <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v0.52.0/mapbox-gl.css" rel="stylesheet">
+	
+    <link href="https://carto.com/developers/carto-vl/v1.4.4/examples/maps/style.css" rel="stylesheet">
+  <style>
+  #map {
+    position: absolute;
+    width:1000px;
+	height:600px;
+	top: 10px;
+	right: 300px;
+  }
+
+.login { 
+	position: relative
+	top: 60px;
+	left: 500px;
+	margin: -10px 0 0 1100px;
+	width:100px;
+	height:100px;
+	color: #fff; text-shadow: 0 0 10px rgba(0,0,0,0.3); letter-spacing:1px; text-align:center;
+}
+
+body {
+  background-color: black;
+}
+</style>
+</head>
+
+<body><div id="container">
+ <div id="map"></div>
+    <aside class="toolbox">
+        
+    </aside>
+    <div id="loader">
+        <div class="CDB-LoaderIcon CDB-LoaderIcon--big">
+            <svg class="CDB-LoaderIcon-spinner" viewBox="0 0 50 50">
+                <circle class="CDB-LoaderIcon-path" cx="25" cy="25" r="20" fill="none"></circle>
+            </svg>
+        </div>
+    </div>
+<script>
+  const map = new mapboxgl.Map({
+            container: 'map',
+            style: carto.basemaps.voyager,
+            center: [100.8190891,3.232068],
+            zoom: 8,
+            scrollZoom: true
+        });
+
+        const nav = new mapboxgl.NavigationControl({
+            showCompass: false
+        });
+        map.addControl(nav, 'top-left');
+        map.addControl(new mapboxgl.FullscreenControl(), 'top-left');
+
+        // Define pop-up
+        const popup = new mapboxgl.Popup({
+            closeButton: false,
+            closeOnClick: false
+        });
+
+        carto.setDefaultAuth({
+            username: 'syasha',
+            apiKey: 'abff1ff65d54802a3bb72a7049fabad27386e221'
+        });
+
+        const source = new carto.source.Dataset('compilationclean_copy');
+        const viz = new carto.Viz(`
+            @location: $location
+            @price: $price
+			color: ramp($location, vivid)
+			
+			strokeColor: black
+			strokeWidth: 0.5
+            width: 30
+            
+            
+        `);
+        const layer = new carto.Layer('layer', source, viz);
+
+        // Define interactivity
+        const interactivity = new carto.Interactivity(layer);
+        const delay = 50;
+        let clickedFeatureId = null;
+
+        interactivity.on('featureEnter', event => {
+            event.features.forEach(feature => {
+                if (feature.id !== clickedFeatureId) {
+                    feature.color.blendTo('opacity(DeepPink, 0.5)', delay)
+                    feature.strokeWidth.blendTo('4', delay);
+                    feature.strokeColor.blendTo('opacity(DeepPink, 0.8)', delay);
+                }
+            });
+        });
+
+        interactivity.on('featureLeave', event => {
+            event.features.forEach(feature => {
+                if (feature.id !== clickedFeatureId) {
+                    feature.color.reset(delay);
+                    feature.strokeWidth.reset(delay);
+                    feature.strokeColor.reset(delay);
+                }
+            });
+        });
+
+        layer.addTo(map, 'watername_ocean');
+        layer.on('loaded', hideLoader);
+
+        interactivity.on('featureHover', updatePopup);
+
+        function updatePopup(event) {
+            if (event.features.length > 0) {
+                const vars = event.features[0].variables;
+                popup.setHTML(`
+                    <div>
+                        <h3 class ="h3">${vars.location.value}</h3>
+                        <p class="description open-sans">Price: ${vars.price.value}</h3>
+                    </div>
+                `);
+                popup.setLngLat([event.coordinates.lng, event.coordinates.lat]);
+                if (!popup.isOpen()) {
+                    popup.addTo(map);
+                }
+            } else {
+                popup.remove();
+            }
+        }
+        function hideLoader() {
+            document.getElementById('loader').style.opacity = '0';
+        }
+   function setRampAuto() {
+      layer.blendToViz(rampAutoViz);
+    }
+</script>
+ <div class="login">
+	<h1>Predict House Price</h1>
+
+     
+    <form action="{{ url_for('predict')}}"method="post">
+	<label for="loc">Location:</label>
+  <select name="loc">
+    <option value="Ampang">Ampang</option>
+    <option value="Bandar Saujana Putra">Bandar Saujana Putra</option>
+    <option value="Banting">Banting</option>
+    <option value="Batu Caves">Batu Caves</option>
+	<option value="Beranang">Beranang</option>
+	<option value="Bukit Beruntung">Bukit Beruntung</option>
+	<option value="Cheras">Cheras</option>
+	<option value="Cyberjaya">Cyberjaya</option>
+	<option value="Dengkil">Dengkil</option>
+	<option value="Glenmarie">Glenmarie</option>
+	<option value="Gombak">Gombak</option>
+	<option value="Hulu Langat">Hulu Langat</option>
+	<option value="Hulu Selangor">Hulu Selangor</option>
+	<option value="Jenjarom">Jenjarom</option>
+	<option value="Kajang">Kajang</option>
+	<option value="Kapar">Kapar</option>
+	<option value="Kayu Ara">Kayu Ara</option>
+	<option value="Kerling">Kerling</option>
+	<option value="Klang">Klang</option>
+	<option value="Kota Kemuning">Kota Kemuning</option>
+	<option value="Kuala Kubu Baru">Kuala Kubu Baru</option>
+	<option value="Kuala Langat">Kuala Langat</option>
+	<option value="Kuala Selangor">Kuala Selangor</option>
+	<option value="Petaling Jaya">Petaling Jaya</option>
+	<option value="Port Klang">Port Klang</option>
+	<option value="Puchong">Puchong</option>
+	<option value="Rawang">Rawang</option>
+	<option value="Sabak Bernam">Sabak Bernam</option>
+	<option value="Salak Tinggi">Salak Tinggi</option>
+	<option value="Selayang">Selayang</option>
+	<option value="Sepang">Sepang</option>
+	<option value="Serdang">Serdang</option>
+	<option value="Serendah">Serendah</option>
+	<option value="Shah Alam">Shah 	Alam</option>
+	<option value="Subang Jaya">Subang Jaya</option>
+	<option value="Sungai Buloh">Sungai Buloh</option>
+	<option value="Tanjong Karang">Tanjong Karang</option>
+	<option value="Tanjong Sepat">Tanjong Sepat</option>
+	<option value="Ulu Klang">Ulu Klang</option>
+	
+  </select>
+  <label for="pro">Property:</label>
+  <select name="cate">
+    <option value="Apartment">Apartment</option>
+    <option value="Bungalow">Bungalow</option>
+    <option value="Condo">Condo</option>
+    <option value="Double storey">Double storey</option>
+	<option value="One and a half storey">One and a half storey</option>
+	<option value="Semi detached">Semi detached</option>
+	<option value="Single storey">Single storey</option>
+	<option value="Townhouse">Townhouse</option>
+	<option value="Triple storey">Triple storey</option>
+	<option value="Two and a half storey">Two and a half storey</option>
+	</select>
+		<input type="text" name="size" placeholder="Size" required="required" />
+		<input type="text" name="bedroom" placeholder="Number of Bedroom" required="required" />
+		<input type="text" name="bathroom" placeholder="Number of Bathroom" required="required" />
+		<br>
+		<br>
+        <button type="submit" class="btn btn-primary btn-block btn-large">Predict</button>
+    </form>
+
+   <br>
+   <br>
+   {{ prediction_text }}
+
+ </div>
+</div>
+
+</body>
+</html>
